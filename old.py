@@ -4,70 +4,87 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
-# Ensure you have installed: pip install psycopg2-binary sqlalchemy
 
+
+# Load environment variables (Make sure GOOGLE_API_KEY is in your .env)
 load_dotenv()
 
-# --- NEW SUPABASE CONFIGURATION ---
-# Using the Pooler URI provided with the correct SQLAlchemy prefix
-SUPABASE_URI = os.getenv("SUPABASE_URI")
 
-st.set_page_config(page_title="Supabase Music Database Agent", layout="wide")
-st.title("🎵 Supabase Music Database Agent")
+# Configure Streamlit
+st.set_page_config(page_title="Chinook Music Database Agent", layout="wide")
+st.title("🎵 Chinook Music Database Agent")
 
+
+# Initialize database and model
 @st.cache_resource
 def setup_agent():
-    # 1. Database connection - Updated to use Supabase URI
-    db = SQLDatabase.from_uri(SUPABASE_URI)
+    # 1. Database connection - CHINOOK.DB (SQLite file)
+    # Make sure Chinook.db is in the same directory or provide full path
+    db = SQLDatabase.from_uri("sqlite:///Chinook.db")
     
-    # 2. LLM Configuration
+    # 2. LLM Configuration (Gemini 2.0 Flash)
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
     
     # 3. Create the SQL Agent
     agent_executor = create_sql_agent(
         llm=llm,
         db=db,
-        agent_type="tool-calling",
+        agent_type="tool-calling",  # Best for Gemini/OpenAI in 2025
         verbose=True,
-        prefix="""You are a secure and read-only SQL assistant for the Chinook Music Database.
+        prefix="""You are a professional SQL assistant for the Chinook Music Database.
+
 
 Your purpose:
 - Provide factual, helpful, and clear answers about the database contents.
+- Execute SQL queries to analyze, read, and modify database data.
 - Analyze and describe albums, artists, tracks, playlists, customers, invoices, and related entities.
+- Support both data retrieval and data modification operations.
 
-Security enforcement:
-- You operate in a QUERY-ONLY mode.
-- You must **NEVER** attempt to modify, update, insert, or delete any data.
-- You must **NEVER** write or execute any statement containing keywords such as:
-  `DELETE`, `UPDATE`, `INSERT`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `REPLACE`,
-  `EXEC`, `ATTACH`, `DETACH`, or `WRITE`.
-- You must **NOT** make schema changes or alter any tables, triggers, or views.
 
-Always be factual and clear in your explanations.
-Summarize insights logically and concisely, using SQL knowledge responsibly."""
+Capabilities:
+- You can READ/QUERY data from any table to analyze and provide insights.
+- You can WRITE/MODIFY data including INSERT, UPDATE, DELETE operations when requested.
+- You can CREATE or ALTER tables, indexes, and other schema objects when needed.
+- You have full SQL capability to perform comprehensive database operations.
+
+
+Best practices:
+- Always confirm destructive operations (DELETE, DROP, TRUNCATE) before executing.
+- Use transactions appropriately for data integrity.
+- Provide clear explanations of what queries will do before execution.
+- Summarize results logically and concisely.
+- Use SQL knowledge responsibly and efficiently.
+
+
+Always be factual, clear, and helpful in your explanations."""
     )
     
     return agent_executor
 
-# --- Update the Session State initialization to use the new URI ---
+
+# Initialize session state for chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+
+# Instantiate the agent once and cache it
 if "executor" not in st.session_state:
     try:
         st.session_state.executor = setup_agent()
-        st.success("✅ Connected to Supabase PostgreSQL successfully!")
+        st.success("✅ Connected to Chinook database successfully!")
         
+        # Show quick stats
         with st.expander("📊 Quick Database Overview"):
-            # Use the new URI here as well
-            db = SQLDatabase.from_uri(SUPABASE_URI)
+            db = SQLDatabase.from_uri("sqlite:///Chinook.db")
             tables = db.get_usable_table_names()
-            st.info(f"**Tables available in Supabase:** {', '.join(tables)}")
+            st.info(f"**Tables available:** {', '.join(tables)}")
+            st.warning("⚠️ **Note:** This agent has full read and write access to the database. Use with caution.")
             
     except Exception as e:
-        st.error(f"❌ Failed to connect to Supabase: {e}")
+        st.error(f"❌ Failed to connect to Chinook.db: {e}")
+        st.info("💡 Make sure `Chinook.db` file is in the same directory as this app")
         st.stop()
 
-# Initialize chat message history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
 # Display chat history
 for message in st.session_state.messages:
