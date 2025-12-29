@@ -1,7 +1,13 @@
-streamlit>=1.41.0
-langchain-google-genai>=2.0.0
-langchain>=0.3.0
+# UI and Deployment
+streamlit>=1.52.2
+
+# AI and Orchestration
+langchain>=1.2.0
+langchain-google-genai>=4.1.2
 langchain-community>=0.3.0
+langgraph>=0.4.0
+
+# Database and Backend
 sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.9
+psycopg2-binary>=2.9.10
 python-dotenv>=1.0.1
