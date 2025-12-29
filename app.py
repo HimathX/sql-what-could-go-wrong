@@ -80,8 +80,8 @@ SUPABASE_URI = os.getenv("SUPABASE_URI")
 class State(TypedDict):
     messages: Annotated[List[BaseMessage], add]
 
-st.set_page_config(page_title="Supabase Music Database Agent", layout="wide")
-st.title("🎵 Supabase Music Database Agent")
+st.set_page_config(page_title="Intelligent SQL Executor", layout="wide")
+st.title("🎵 Intelligent SQL Executor")
 
 # Initialize chat message history
 if "messages" not in st.session_state:
@@ -250,47 +250,48 @@ if prompt:
     st.rerun()
 
 
-# Sidebar with example questions
+# Sidebar with information and examples
 with st.sidebar:
-    st.header("💡 Example Questions")
+    st.header("About")
+    st.markdown("""
+**Intelligent SQL Executor** is an AI-powered agent that understands natural language queries and executes them against your database.
+    """)
     
-    st.subheader("📖 Read Operations")
-    read_examples = [
-        "Which genre has the longest tracks on average?",
-        "Top 5 best-selling artists?",
-        "How many customers from each country?",
-        "What are the most expensive albums?",
-        "Which tracks are over 5 minutes long?",
-        "Total sales by genre?"
-    ]
-    
-    for example in read_examples:
-        if st.button(example, key=f"read_{example}"):
-            st.session_state.pending_query = example
-            st.rerun()
+    st.subheader("How It Works")
+    with st.expander("See details", expanded=False):
+        st.markdown("""
+1. **Ask a Question** - Type any database query in natural language
+2. **Agent Analysis** - AI understands your intent and generates SQL
+3. **Execution** - Query runs against the Chinook database
+4. **Results** - Get answers with full reasoning visible
+        """)
     
     st.divider()
     
-    st.subheader("✏️ Write Operations")
-    write_examples = [
-        "Add a new genre called 'Synthwave'",
-        "Update the price of album ID 1 to $15.99",
-        "Delete the track with ID 100",
-        "Create a new playlist called 'Summer Hits'",
-        "Insert a new artist named 'Indie Legends'"
+    st.subheader("Try These")
+    examples = [
+        "Count total artists in the database",
+        "Show top 5 genres by revenue",
+        "List employees by hire date",
+        "Show customer distribution by country"
     ]
     
-    for example in write_examples:
-        if st.button(example, key=f"write_{example}"):
+    for example in examples:
+        if st.button(example, key=f"example_{example}", use_container_width=True):
             st.session_state.pending_query = example
             st.rerun()
 
     st.divider()
-    st.info("**Chinook Tables:** Album, Artist, Customer, Employee, Genre, Invoice, InvoiceLine, MediaType, Playlist, PlaylistTrack, Track")
+    
+    col = st.columns(1)
+
+    with col[0]:
+        if st.button("🗑️ Clear Chat", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.thinking_steps = []
+            st.session_state.thread_id = str(uuid.uuid4())
+            st.rerun()
     
     st.divider()
-    if st.button("🔄 Clear Chat History", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.thinking_steps = []
-        st.session_state.thread_id = str(uuid.uuid4())
-        st.rerun()
+    with st.expander("📊 Available Tables", expanded=False):
+        st.caption("Album, Artist, Customer, Employee, Genre, Invoice, InvoiceLine, MediaType, Playlist, PlaylistTrack, Track")
