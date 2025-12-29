@@ -4,9 +4,9 @@ A project demonstrating SQL database interactions with safety considerations, fe
 
 ## 📋 Project Overview
 
-This project showcases a secure, read-only SQL assistant for the Chinook Music Database using:
+This project showcases a secure SQL assistant for the Chinook Music Database using:
 
-- **Streamlit** for the interactive web UI
+- **Streamlit** for the interactive web UI (with real-time agent thinking)
 - **LangChain** with Google's Gemini AI for intelligent SQL interactions
 - **Supabase** as the database backend
 - **SQLite-to-PostgreSQL migration** tools
@@ -16,9 +16,9 @@ The agent is designed with built-in security constraints to prevent unintended d
 ## 📂 Project Structure
 
 - **app.py** - Main Streamlit application with the SQL agent interface
-- **migration.py** - SQLite to PostgreSQL/Supabase migration script
-- **old.py** - Legacy/reference code
-- **test.py** - Testing utilities
+- **production.py** - Streamlit app with runtime model/API-key inputs in the sidebar
+- **prompt.py** - Agent prompt configuration
+- **Archives/** - Earlier attempts and migration utilities
 - **requirements.txt** - Python dependencies
 
 ## 🚀 Getting Started
@@ -26,7 +26,7 @@ The agent is designed with built-in security constraints to prevent unintended d
 ### Prerequisites
 
 - Python 3.8+
-- Google API credentials (for Gemini)
+- Google API credentials (for Gemini) — optional to preload via `.env` (can also be entered in the app sidebar)
 - Supabase account (or PostgreSQL database)
 
 ### Installation
@@ -51,7 +51,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file with your credentials:
+4. (Optional) Create a `.env` file with your credentials:
 
 ```env
 SUPABASE_URI=postgresql+psycopg2://user:password@host:5432/database
@@ -63,11 +63,22 @@ GOOGLE_API_KEY=your_google_api_key
 
 ### Run the Streamlit App
 
+Development view (fixed model from environment variables):
+
 ```bash
 streamlit run app.py
 ```
 
-The app will open in your browser, providing an interactive interface to query the music database.
+Production view (set model and API key in sidebar at runtime):
+
+```bash
+streamlit run production.py
+```
+
+In the production app sidebar you can set:
+
+- **Model name** (default: `gemini-2.0-flash`)
+- **API key** (overrides `GOOGLE_API_KEY` when provided)
 
 ### Migrate Data from SQLite
 
@@ -81,9 +92,9 @@ This script migrates the Chinook database from SQLite to PostgreSQL/Supabase.
 
 The SQL agent includes built-in safeguards:
 
-- **Read-Only Mode**: Query-only access, no modifications allowed
-- **Keyword Blocking**: Prevents execution of DELETE, UPDATE, INSERT, DROP, ALTER, CREATE, etc.
-- **Schema Protection**: No triggers, views, or table structure changes
+- **Principle of least privilege**: Queries are validated and constrained
+- **Keyword blocking**: Prevents dangerous operations (DROP/ALTER, etc.)
+- **Schema awareness**: Limits to known Chinook tables
 
 ## 📦 Dependencies
 
@@ -94,9 +105,6 @@ The SQL agent includes built-in safeguards:
 - `psycopg2-binary` - PostgreSQL adapter
 - `python-dotenv` - Environment variable management
 
-## 📝 License
-
-[Add your license here]
 
 ## 👨‍💻 Contributing
 
