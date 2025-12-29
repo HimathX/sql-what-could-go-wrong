@@ -7,7 +7,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.runnables import RunnableConfig
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.chat_models import init_chat_model
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
 from operator import add
@@ -95,6 +95,12 @@ if "thinking_steps" not in st.session_state:
 if "pending_query" not in st.session_state:
     st.session_state.pending_query = None
 
+# Model and API key configuration
+if "model_name" not in st.session_state:
+    st.session_state.model_name = "gemini-2.0-flash"
+if "api_key" not in st.session_state:
+    st.session_state.api_key = ""
+
 # Initialize callback handler
 if "callback_handler" not in st.session_state:
     st.session_state.callback_handler = StreamlitCallbackHandler()
@@ -107,7 +113,17 @@ def get_checkpointer():
 def run_sql_agent(query: str, callback_handler: StreamlitCallbackHandler):
     """Run the SQL agent with callback handler to capture thinking"""
     db = SQLDatabase.from_uri(SUPABASE_URI)
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+    # Allow runtime overrides from the sidebar
+    model_name = st.session_state.model_name or "gemini-2.0-flash"
+    api_key = st.session_state.api_key 
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key  # ensure downstream client picks it up
+    llm = init_chat_model(
+        model=model_name,
+        model_provider="google_genai",
+        temperature=0,
+        api_key=api_key if api_key else None,
+    )
     agent_executor = create_sql_agent(
         llm=llm, 
         db=db, 
@@ -130,7 +146,16 @@ def setup_graph(_checkpointer):
     """Build the LangGraph workflow"""
     def sql_agent_node(state: State):
         db = SQLDatabase.from_uri(SUPABASE_URI)
-        llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+        model_name = st.session_state.model_name 
+        api_key = st.session_state.api_key 
+        if api_key:
+            os.environ["GOOGLE_API_KEY"] = api_key
+        llm = init_chat_model(
+            model=model_name,
+            model_provider="google_genai",
+            temperature=0,
+            api_key=api_key if api_key else None,
+        )
         agent_executor = create_sql_agent(
             llm=llm, 
             db=db, 
@@ -268,6 +293,16 @@ with st.sidebar:
     
     st.divider()
     
+    st.subheader("Model Settings")
+    st.session_state.model_name = st.text_input(
+        "Model name", value=st.session_state.model_name, help="e.g., gemini-2.0-flash"
+    )
+    st.session_state.api_key = st.text_input(
+        "API key", value=st.session_state.api_key, type="password", help="Google GenAI API key"
+    )
+
+    st.divider()
+    
     st.subheader("Try These")
     examples = [
         "Count total artists in the database",
@@ -281,16 +316,13 @@ with st.sidebar:
             st.session_state.pending_query = example
             st.rerun()
 
-    st.divider()
-    
-    col = st.columns(1)
 
-    with col[0]:
-        if st.button("🗑️ Clear Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.thinking_steps = []
-            st.session_state.thread_id = str(uuid.uuid4())
-            st.rerun()
+    st.divider()
+    if st.button("🗑️ Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.thinking_steps = []
+        st.session_state.thread_id = str(uuid.uuid4())
+        st.rerun()
     
     st.divider()
     with st.expander("📊 Available Tables", expanded=False):
